@@ -7,7 +7,7 @@ import jsPDF from "jspdf";
 
 
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:5000", // change if needed
+  baseURL: "https://ph-assignment-12-server-eight.vercel.app", // change if needed
 });
 
 export default function ReportAdmin() {

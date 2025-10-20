@@ -16,7 +16,7 @@ const UpdateProfile = () => {
        
 
         try {
-            const res = await axios.put(`http://localhost:5000/users/email/${user.email}`, {
+            const res = await axios.put(`https://ph-assignment-12-server-eight.vercel.app/users/email/${user.email}`, {
                 name,
                 profilePic,
             });

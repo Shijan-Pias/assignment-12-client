@@ -6,6 +6,8 @@ import CategorySlider from './FirstExtra';
 import BrandsMarquee from './SecondSection';
 import CategoryCardSection from './CategoryCardSection';
 import DiscountProducts from './DiscountProduct';
+import AboutSection from './About';
+import ContactSection from './Contact';
 
 const Home = () => {
     return (
@@ -15,6 +17,8 @@ const Home = () => {
           <CategoryCardSection></CategoryCardSection>
           <DiscountProducts></DiscountProducts>
           <BrandsMarquee></BrandsMarquee>
+          <AboutSection></AboutSection>
+          <ContactSection></ContactSection>
           
 
         </div>
