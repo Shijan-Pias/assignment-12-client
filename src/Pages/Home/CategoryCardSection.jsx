@@ -1,111 +1,252 @@
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet";
-import UseAxios from "../../hook/UseAxios";
-import { useState } from "react";
+import { Link, useNavigate } from "react-router"; // useNavigate import koro
+import { Swiper, SwiperSlide } from "swiper/react";
+import { FreeMode, Pagination, Autoplay } from "swiper/modules";
+import { FaShoppingCart, FaEye, FaTimes, FaStar } from "react-icons/fa";
+import Swal from "sweetalert2"; // SweetAlert import
 
-const CategoryCardSection = () => {
-  const axiosInstance = UseAxios();
+// Custom Hooks // Secure hook for post
+ // Auth hook
+
+// Import Swiper styles
+import "swiper/css";
+import "swiper/css/free-mode";
+import "swiper/css/pagination";
+import UseAxiosSecure from "../../hook/UseAxiosSecure";
+import UseAuth from "../../hook/UseAuth";
+
+const FeaturedMedicines = () => {
+  const axiosSecure = UseAxiosSecure(); // Cart এ পোস্ট করার জন্য Secure Axios
+  const { user } = UseAuth();
+  const navigate = useNavigate();
   const [selectedMedicine, setSelectedMedicine] = useState(null);
 
+  // Fetch Data
   const { data: medicines = [], isLoading } = useQuery({
     queryKey: ["medicines"],
     queryFn: async () => {
-      const res = await axiosInstance.get("/medicines");
+      const res = await axiosSecure.get("/medicines");
       return res.data;
     },
   });
 
-  if (isLoading) return <div className="text-center my-10">Loading...</div>;
+  // ✅ Add to Cart Function
+  const handleAddToCart = async (medicine) => {
+    // ১. ইউজার লগইন না থাকলে লগইন পেজে পাঠাবো
+    if (!user && !user?.email) {
+      Swal.fire({
+        title: "Please Login",
+        text: "You need to login to add items to the cart",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#10B981",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Login Now"
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate('/login', { state: { from: location.pathname } });
+        }
+      });
+      return;
+    }
+
+    // ২. কার্ট অবজেক্ট তৈরি
+    const cartItem = {
+      medicineId: medicine._id,
+      userEmail: user.email,
+      itemName: medicine.itemName,
+      company: medicine.company,
+      image: medicine.MedicineImage,
+      price: medicine.price, // অথবা ডিসকাউন্ট প্রাইস দিতে পারো
+      quantity: 1,
+      category: medicine.category
+    };
+
+    // ৩. ব্যাকএন্ডে পাঠানো
+    try {
+        const res = await axiosSecure.post('/carts', cartItem);
+        
+        if(res.data.insertedId){
+            Swal.fire({
+                position: "top-end",
+                icon: "success",
+                title: `${medicine.itemName} added to cart`,
+                showConfirmButton: false,
+                timer: 1500
+            });
+            // Optional: Refetch cart count here if you have a useCart hook
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: "Something went wrong! Try again.",
+        });
+    }
+  };
+
+  if (isLoading) return <div className="text-center my-20"><span className="loading loading-dots loading-lg text-emerald-500"></span></div>;
 
   return (
-    <div className="my-10">
-      {/* Dynamic Title */}
+    <section className="py-16 bg-slate-50">
       <Helmet>
         <title>Featured Medicines | PharmaHub</title>
-        <meta
-          name="description"
-          content="Explore our featured medicines collection"
-        />
       </Helmet>
 
-      <h2 className="text-2xl font-bold mb-6 text-center">
-        Featured Medicines
-      </h2>
+      <div className="max-w-[1280px] mx-auto px-4">
+        {/* Header */}
+        <div className="flex justify-between items-end mb-10">
+            <div>
+                <h2 className="text-3xl md:text-4xl font-bold text-slate-800">Featured Products</h2>
+                <p className="text-slate-500 mt-2">Check out our best-selling medicines with verified quality.</p>
+            </div>
+            <Link to='/shopPage'>
+                <button className="hidden md:block btn btn-outline border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-full px-6">
+                    View All
+                </button>
+            </Link>
+        </div>
 
-      {/* Medicine Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mx-6 lg:mx-12">
-        {medicines.map((med) => (
-          <div
-            key={med._id}
-            className="bg-white shadow-md rounded-xl p-4 hover:shadow-lg transition"
-          >
-            <img
-              src={med.MedicineImage || "/default-medicine.png"}
-              alt={med.itemName}
-              className="h-40 w-full object-contain mb-3"
-            />
-            <h3 className="font-semibold text-lg">{med.itemName}</h3>
-            <p className="text-sm text-gray-600">{med.genericName}</p>
-            <p className="text-gray-500">Category: {med.category}</p>
-            <p className="text-gray-500">Company: {med.company}</p>
-            <p className="mt-2 font-bold">{med.finalPrice} TK</p>
+        {/* Slider */}
+        <Swiper
+          slidesPerView={1}
+          spaceBetween={20}
+          freeMode={true}
+          autoplay={{ delay: 3000, disableOnInteraction: false }}
+          pagination={{ clickable: true }}
+          breakpoints={{
+            640: { slidesPerView: 2, spaceBetween: 20 },
+            768: { slidesPerView: 3, spaceBetween: 30 },
+            1024: { slidesPerView: 4, spaceBetween: 30 },
+          }}
+          modules={[FreeMode, Pagination, Autoplay]}
+          className="mySwiper pb-12"
+        >
+          {medicines.map((med) => (
+            <SwiperSlide key={med._id}>
+              <div className="card bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 rounded-2xl group overflow-hidden h-[420px]">
+                
+                {/* Discount Badge */}
+                {med.discount > 0 && (
+                    <div className="absolute top-3 left-3 z-10 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm">
+                        -{med.discount}% OFF
+                    </div>
+                )}
 
-            {/* View Details Button */}
-            <button
-              onClick={() => setSelectedMedicine(med)}
-              className="mt-3 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition"
-            >
-              View Details
-            </button>
-          </div>
-        ))}
+                {/* Image */}
+                <figure className="relative h-48 bg-gray-50 p-4 overflow-hidden">
+                  <img
+                    src={med.MedicineImage}
+                    alt={med.itemName}
+                    className="h-full w-full object-contain group-hover:scale-110 transition-transform duration-500"
+                  />
+                  
+                  {/* Hover Buttons */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 flex justify-center gap-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                    <button 
+                        onClick={() => setSelectedMedicine(med)}
+                        className="btn btn-sm btn-circle bg-white text-emerald-600 shadow-lg border-none hover:bg-emerald-500 hover:text-white"
+                        title="Quick View"
+                    >
+                        <FaEye />
+                    </button>
+                    {/* ✅ Add to Cart Button (Slider) */}
+                    <button 
+                        onClick={() => handleAddToCart(med)}
+                        className="btn btn-sm btn-circle bg-white text-emerald-600 shadow-lg border-none hover:bg-emerald-500 hover:text-white"
+                        title="Add to Cart"
+                    >
+                        <FaShoppingCart />
+                    </button>
+                  </div>
+                </figure>
+
+                {/* Content */}
+                <div className="card-body p-5">
+                  <div className="flex items-center gap-1 text-yellow-400 text-xs mb-1">
+                      <FaStar /><FaStar /><FaStar /><FaStar /><FaStar className="text-gray-300"/>
+                      <span className="text-gray-400 ml-1">(4.0)</span>
+                  </div>
+                  
+                  <h3 className="card-title text-base font-bold text-slate-700 h-10 overflow-hidden">
+                    {med.itemName}
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium">{med.category} • {med.company}</p>
+                  
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-lg font-bold text-emerald-600">৳{med.price}</span>
+                    {med.discount > 0 && (
+                        <span className="text-sm text-slate-400 line-through">
+                            ৳{Math.round(med.price + (med.price * med.discount / 100))}
+                        </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
       </div>
 
-      {/* Modal Popup */}
+      {/* Modal */}
       {selectedMedicine && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-xl shadow-lg w-11/12 md:w-1/2 lg:w-1/3 p-6 relative">
-            {/* Close Button */}
-            <button
-              onClick={() => setSelectedMedicine(null)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-2xl"
-            >
-              &times;
-            </button>
+        <dialog className="modal modal-open bg-black/40 backdrop-blur-sm">
+          <div className="modal-box w-11/12 max-w-4xl p-0 overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex flex-col lg:flex-row">
+                
+                <div className="lg:w-1/2 bg-slate-50 p-8 flex items-center justify-center relative">
+                    <img
+                        src={selectedMedicine.MedicineImage || "/default-medicine.png"}
+                        alt={selectedMedicine.itemName}
+                        className="max-h-64 object-contain drop-shadow-xl"
+                    />
+                    {selectedMedicine.discount > 0 && (
+                        <span className="absolute top-4 left-4 bg-red-500 text-white text-xs px-2 py-1 rounded">SALE</span>
+                    )}
+                </div>
 
-            <img
-              src={selectedMedicine.MedicineImage || "/default-medicine.png"}
-              alt={selectedMedicine.itemName}
-              className="h-48 w-full object-contain mb-4"
-            />
+                <div className="lg:w-1/2 p-8 relative">
+                    <button
+                        onClick={() => setSelectedMedicine(null)}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition text-xl"
+                    >
+                        <FaTimes />
+                    </button>
 
-            <h2 className="text-2xl font-bold mb-2">
-              {selectedMedicine.itemName}
-            </h2>
-            <p className="text-gray-600 mb-1">
-              <strong>Generic Name:</strong> {selectedMedicine.genericName}
-            </p>
-            <p className="text-gray-600 mb-1">
-              <strong>Category:</strong> {selectedMedicine.category}
-            </p>
-            <p className="text-gray-600 mb-1">
-              <strong>Company:</strong> {selectedMedicine.company}
-            </p>
-          
-            <p className="text-gray-600 mb-1">
-              <strong>Discount:</strong> {selectedMedicine.discount}%
-            </p>
-            <p className="text-gray-800 mt-3 text-lg font-semibold">
-              Price: {selectedMedicine.finalPrice} TK
-            </p>
-             <p className="text-gray-600 mb-1">
-              <strong>Description:</strong> {selectedMedicine.description}
-            </p>
+                    <span className="badge badge-outline badge-primary mb-2 text-xs">{selectedMedicine.category}</span>
+                    <h2 className="text-3xl font-bold text-slate-800 mb-2">{selectedMedicine.itemName}</h2>
+                    <p className="text-sm text-slate-500 mb-4">Generic: <span className="font-semibold text-slate-700">{selectedMedicine.genericName}</span></p>
+                    <div className="divider my-2"></div>
+                    <p className="text-gray-600 text-sm leading-relaxed mb-6">
+                        {selectedMedicine.description || "No description available for this medicine."}
+                    </p>
+
+                    <div className="flex items-center justify-between mt-auto">
+                        <div>
+                            <p className="text-sm text-slate-400">Total Price</p>
+                            <p className="text-3xl font-bold text-emerald-600">৳{selectedMedicine.price}</p>
+                        </div>
+                        {/* ✅ Add to Cart Button (Modal) */}
+                        <button 
+                            onClick={() => handleAddToCart(selectedMedicine)}
+                            className="btn bg-emerald-600 hover:bg-emerald-700 text-white px-8 rounded-full shadow-lg shadow-emerald-200"
+                        >
+                            <FaShoppingCart className="mr-2"/> Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
           </div>
-        </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setSelectedMedicine(null)}>close</button>
+          </form>
+        </dialog>
       )}
-    </div>
+    </section>
   );
 };
 
-export default CategoryCardSection;
+export default FeaturedMedicines;

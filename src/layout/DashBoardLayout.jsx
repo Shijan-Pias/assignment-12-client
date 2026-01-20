@@ -47,6 +47,7 @@ const DashBoardLayout = () => {
                         role == 'user' && <>
 
                             <li><NavLink to='/dashBoard/paymentHistory'>My all payment</NavLink></li>
+                            <li><NavLink to='/dashBoard/myPrescription'>My Prescription</NavLink></li>
                         </>
                     }
 
@@ -72,6 +73,18 @@ const DashBoardLayout = () => {
                     {
                         !roleLoading && role == 'admin' &&
                         <>
+                            <li>
+                                <NavLink
+                                    to="/dashboard/managePrescription"
+                                    className={({ isActive }) =>
+                                        isActive
+                                            ? "bg-primary text-white px-4 py-2 rounded"
+                                            : "px-4 py-2 rounded hover:bg-gray-200"
+                                    }
+                                >
+                                    Manage Prescription
+                                </NavLink>
+                            </li>
                             <li>
                                 <NavLink
                                     to="/dashboard/makeAdmin"

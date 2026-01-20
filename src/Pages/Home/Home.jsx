@@ -8,13 +8,16 @@ import CategoryCardSection from './CategoryCardSection';
 import DiscountProducts from './DiscountProduct';
 import AboutSection from './About';
 import ContactSection from './Contact';
+import UploadPrescription from '../../Prescription/UploadPrescription';
+import HowItWorks from '../../Prescription/HowItWork';
 
 const Home = () => {
     return (
         <div>
            <Banner></Banner>
-          <CategorySlider></CategorySlider>
-          <CategoryCardSection></CategoryCardSection>
+           <CategoryCardSection></CategoryCardSection>
+           <UploadPrescription></UploadPrescription>
+          <HowItWorks></HowItWorks>
           <DiscountProducts></DiscountProducts>
           <BrandsMarquee></BrandsMarquee>
           <AboutSection></AboutSection>

@@ -29,6 +29,8 @@ import CategoryCardSection from "../Pages/Home/CategoryCardSection";
 import DiscountProducts from "../Pages/Home/DiscountProduct";
 import SellerRoutes from "../Routes/SellerRoutes";
 import UpdateProfile from "../Authentication/UpdateProfile";
+import ManagePrescriptions from "../Pages/DashBoard/MakeAdmin/ManagePrescription";
+import MyPrescriptions from "../Pages/DashBoard/UserDashboard/MyPrescription";
 
 export const router = createBrowserRouter([
   {
@@ -116,6 +118,10 @@ export const router = createBrowserRouter([
         Component:PaymentHistory
       },
       {
+        path:'myPrescription',
+        Component:MyPrescriptions
+      },
+      {
       path : 'addMedicine',
         element:<SellerRoutes><AddMedicine></AddMedicine></SellerRoutes>
       },
@@ -143,6 +149,10 @@ export const router = createBrowserRouter([
       {
         path:'report',
         element:<AdminRoute><ReportAdmin></ReportAdmin></AdminRoute>
+      },
+      {
+        path: 'managePrescription',
+        element: <AdminRoute><ManagePrescriptions></ManagePrescriptions></AdminRoute>
       }
     ]
   }
