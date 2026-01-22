@@ -124,7 +124,7 @@ const DashBoardLayout = () => {
                                 </NavLink>
                             </li>
 
-                            <li>
+                            {/* <li>
                                 <NavLink
                                     to="/dashboard/report"
                                     className={({ isActive }) =>
@@ -135,7 +135,7 @@ const DashBoardLayout = () => {
                                 >
                                     Report Admin
                                 </NavLink>
-                            </li>
+                            </li> */}
 
 
                         </>

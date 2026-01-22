@@ -76,7 +76,7 @@ const ManageMedicines = () => {
             className="bg-white shadow-md rounded-lg p-4 flex flex-col justify-between hover:shadow-lg transition-shadow"
           >
             <div>
-              <h3 className="font-semibold text-lg mb-1">{med.itemName}</h3>
+              <h3 className="font-semibold text-lg mb-1 text-amber-500">{med.itemName}</h3>
               <p className="text-gray-600 mb-1">Generic: {med.genericName}</p>
               <p className="text-gray-600 mb-1">Category: {med.category}</p>
               <p className="text-gray-600 mb-1">Company: {med.company}</p>
@@ -84,7 +84,7 @@ const ManageMedicines = () => {
               <p className="text-gray-600 mb-1">
                 Price: <span className="font-medium">{med.price} TK</span>
               </p>
-              <p className="text-gray-600 mb-1">
+              <p className="text-gray-50 mb-1 bg-black">
                 Final Price: <span className="font-medium">{med.finalPrice} TK</span>
               </p>
               <p className="text-gray-600">

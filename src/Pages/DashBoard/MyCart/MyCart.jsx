@@ -53,16 +53,7 @@ const CartPage = () => {
             ) : (
                 <>
                     <table className="table-auto w-full border">
-                        <thead className="bg-gray-200">
-                            <tr>
-                                <th className="px-4 py-2">Name</th>
-                                <th className="px-4 py-2">Company</th>
-                                <th className="px-4 py-2">Price</th>
-                                <th className="px-4 py-2">Qty</th>
-                                <th className="px-4 py-2">Total</th>
-                                <th className="px-4 py-2">Action</th>
-                            </tr>
-                        </thead>
+                    
                         <tbody>
                             {cartItems.map((item) => (
                                 <tr key={item._id} className="border-t">

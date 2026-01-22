@@ -146,10 +146,10 @@ export const router = createBrowserRouter([
         path:'adminPayment',
         element:<AdminRoute><AdminPayments></AdminPayments></AdminRoute>
       },
-      {
-        path:'report',
-        element:<AdminRoute><ReportAdmin></ReportAdmin></AdminRoute>
-      },
+      // {
+      //   path:'report',
+      //   element:<AdminRoute><ReportAdmin></ReportAdmin></AdminRoute>
+      // },
       {
         path: 'managePrescription',
         element: <AdminRoute><ManagePrescriptions></ManagePrescriptions></AdminRoute>

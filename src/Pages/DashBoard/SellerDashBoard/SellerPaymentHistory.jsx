@@ -30,7 +30,7 @@ const SellerPaymentHistory = () => {
       ) : (
         <table className="table-auto w-full border">
           <thead className="bg-gray-200">
-            <tr>
+            <tr className="text-black">
               <th className="px-4 py-2">Buyer</th>
               <th className="px-4 py-2">Amount</th>
               <th className="px-4 py-2">Transaction ID</th>

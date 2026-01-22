@@ -56,7 +56,7 @@ const AdminPayments = () => {
       <div className="overflow-x-auto">
         <table className="min-w-full border border-gray-300">
           <thead className="bg-gray-100">
-            <tr>
+            <tr className="text-black">
               <th className="border px-4 py-2">User Email</th>
               <th className="border px-4 py-2">Seller Email</th>
               <th className="border px-4 py-2">Medicine ID</th>
