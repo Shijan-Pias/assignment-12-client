@@ -1,77 +1,140 @@
 import React from 'react';
-import { FaFileUpload, FaUserMd, FaTruck, FaArrowRight } from 'react-icons/fa';
+import { motion } from 'framer-motion';
+import { MdOutlineFileUpload, MdOutlineVerifiedUser, MdOutlineDeliveryDining } from 'react-icons/md';
+import { Link } from 'react-router';
 
 const HowItWorks = () => {
     const steps = [
         {
-            id: 1,
+            id: "01",
             title: "Upload Prescription",
-            description: "Just take a clear photo of your prescription and upload it directly to our secure portal.",
-            icon: <FaFileUpload />,
-            color: "bg-blue-100 text-blue-600"
+            desc: "Securely upload a photo of your doctor's note to our HIPAA-compliant portal.",
+            icon: <MdOutlineFileUpload />,
+            gradient: "from-blue-500 to-cyan-400",
+            shadow: "shadow-blue-200"
         },
         {
-            id: 2,
-            title: "Verification",
-            description: "Our certified pharmacists will verify your prescription and add the medicines to your cart.",
-            icon: <FaUserMd />,
-            color: "bg-emerald-100 text-emerald-600"
+            id: "02",
+            title: "Expert Verification",
+            desc: "Our licensed pharmacists verify the dosage and authenticity within minutes.",
+            icon: <MdOutlineVerifiedUser />,
+            gradient: "from-emerald-500 to-teal-400",
+            shadow: "shadow-emerald-200"
         },
         {
-            id: 3,
+            id: "03",
             title: "Doorstep Delivery",
-            description: "Relax! We will pack your medicines with care and deliver them to your home fast.",
-            icon: <FaTruck />,
-            color: "bg-orange-100 text-orange-600"
+            desc: "Receive your medication in temperature-controlled packaging right at your door.",
+            icon: <MdOutlineDeliveryDining />,
+            gradient: "from-orange-500 to-amber-400",
+            shadow: "shadow-orange-200"
         }
     ];
 
     return (
-        <section className="py-16 bg-white">
-            <div className="max-w-[1280px] mx-auto px-4 md:px-8">
+        <section className="py-14 bg-white overflow-hidden">
+            <div className="max-w-7xl mx-auto px-6">
                 
-                {/* Section Header */}
-                <div className="text-center mb-12">
-                    <h2 className="text-3xl md:text-4xl font-bold text-slate-800">
-                        How It Works?
-                    </h2>
-                    <p className="text-slate-500 mt-2">
-                        Get your medicines in 3 simple steps
+                {/* Header Section */}
+                <div className="text-center mb-20">
+                    <motion.span 
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        className="text-emerald-600 font-black text-xs uppercase tracking-[0.3em]"
+                    >
+                        Easy Process
+                    </motion.span>
+                    <motion.h2 
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        className="text-4xl md:text-5xl font-black text-slate-900 mt-4"
+                    >
+                        How It <span className="text-emerald-500">Works?</span>
+                    </motion.h2>
+                    <p className="text-slate-400 mt-4 text-lg max-w-lg mx-auto font-medium">
+                        Your health journey simplified into three seamless steps.
                     </p>
                 </div>
 
-                {/* Steps Container */}
-                <div className="flex flex-col md:flex-row justify-between items-center gap-8 relative">
+                {/* Steps Grid */}
+                <div className="relative grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-20">
                     
-                    {/* Decorative Line (Desktop Only) */}
-                    <div className="hidden md:block absolute top-12 left-20 right-20 h-1 border-t-2 border-dashed border-slate-200 -z-0"></div>
+                    {/* The Background Connecting Path (Desktop) */}
+                    <svg className="hidden md:block absolute top-24 left-0 w-full h-20 z-0 pointer-events-none" viewBox="0 0 1000 100" fill="none">
+                        <motion.path 
+                            d="M100,50 Q300,0 500,50 T900,50" 
+                            stroke="#E2E8F0" 
+                            strokeWidth="3" 
+                            strokeDasharray="12 12" 
+                            initial={{ pathLength: 0 }}
+                            whileInView={{ pathLength: 1 }}
+                            transition={{ duration: 2, ease: "easeInOut" }}
+                        />
+                    </svg>
 
                     {steps.map((step, index) => (
-                        <div key={step.id} className="flex-1 w-full relative z-10">
-                            <div className="flex flex-col items-center text-center group">
+                        <motion.div 
+                            key={step.id}
+                            initial={{ opacity: 0, y: 40 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: index * 0.2 }}
+                            className="relative z-10 group"
+                        >
+                            {/* Card Container */}
+                            <div className="flex flex-col items-center text-center">
                                 
-                                {/* Icon Circle */}
-                                <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl mb-6 shadow-sm group-hover:scale-110 transition-transform duration-300 ${step.color}`}>
-                                    {step.icon}
+                                {/* Animated Icon Core */}
+                                <div className="relative mb-10">
+                                    <motion.div 
+                                        whileHover={{ scale: 1.1, rotate: 5 }}
+                                        className={`w-28 h-28 rounded-[2.5rem] bg-gradient-to-br ${step.gradient} ${step.shadow} shadow-2xl flex items-center justify-center text-white text-4xl relative z-10 transition-all`}
+                                    >
+                                        {step.icon}
+                                    </motion.div>
+                                    
+                                    {/* Step Number Bubble */}
+                                    <div className="absolute -top-4 -right-4 w-12 h-12 bg-white rounded-2xl shadow-xl border border-slate-100 flex items-center justify-center font-black text-slate-800 text-sm z-20">
+                                        {step.id}
+                                    </div>
+
+                                    {/* Decorative Pulse Effect */}
+                                    <div className={`absolute inset-0 rounded-[2.5rem] bg-gradient-to-br ${step.gradient} opacity-20 blur-xl group-hover:scale-150 transition-transform duration-500`} />
                                 </div>
 
-                                {/* Step Number Badge */}
-                                <div className="absolute top-0 right-1/2 translate-x-10 bg-slate-800 text-white w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold border-4 border-white">
-                                    {step.id}
-                                </div>
-
-                                {/* Text Content */}
-                                <h3 className="text-xl font-bold text-slate-700 mb-2">
+                                {/* Typography */}
+                                <h3 className="text-2xl font-black text-slate-800 mb-4 group-hover:text-emerald-600 transition-colors">
                                     {step.title}
                                 </h3>
-                                <p className="text-slate-500 text-sm leading-relaxed max-w-xs mx-auto">
-                                    {step.description}
+                                <p className="text-slate-500 font-medium leading-relaxed px-4">
+                                    {step.desc}
                                 </p>
-                            </div>
-                        </div>
-                    ))}
 
+                                {/* Action Indicator (Small Arrow) */}
+                                <motion.div 
+                                    animate={{ x: [0, 5, 0] }}
+                                    transition={{ repeat: Infinity, duration: 2 }}
+                                    className="mt-6 text-slate-300 hidden md:block"
+                                >
+                                    {index < 2 && <MdOutlineFileUpload className="rotate-90 opacity-40" size={24} />}
+                                </motion.div>
+                            </div>
+                        </motion.div>
+                    ))}
                 </div>
+
+                {/* Bottom CTA to tie it together */}
+                <Link to='/shopPage'>
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    className="mt-20 text-center"
+                >
+                    <button className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black hover:bg-emerald-600 hover:shadow-2xl hover:shadow-emerald-200 transition-all active:scale-95">
+                        Start Your Order Now
+                    </button>
+                </motion.div>
+                </Link>
             </div>
         </section>
     );

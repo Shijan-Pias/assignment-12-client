@@ -10,6 +10,7 @@ import AboutSection from './About';
 import ContactSection from './Contact';
 import UploadPrescription from '../../Prescription/UploadPrescription';
 import HowItWorks from '../../Prescription/HowItWork';
+import BenefitsAndServices from './Contact';
 
 const Home = () => {
     return (
@@ -19,9 +20,9 @@ const Home = () => {
            <UploadPrescription></UploadPrescription>
           <HowItWorks></HowItWorks>
           <DiscountProducts></DiscountProducts>
-          <BrandsMarquee></BrandsMarquee>
+          {/* <BrandsMarquee></BrandsMarquee> */}
           <AboutSection></AboutSection>
-          <ContactSection></ContactSection>
+          <BenefitsAndServices></BenefitsAndServices>
           
 
         </div>
