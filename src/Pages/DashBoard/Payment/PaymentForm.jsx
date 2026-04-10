@@ -13,114 +13,112 @@ const PaymentForm = () => {
     const axiosSecure = UseAxiosSecure();
     const { user } = UseAuth();
     const navigate = useNavigate();
-
     const { cartId } = useParams();
 
-    // ✅ Cart থেকে সেই medicine এর info আনছি
-    const { isPending, refetch, data: medicineInfo = {} } = useQuery({
-        queryKey: ['carts', cartId],
+    const { isPending, data: cartItem = {} } = useQuery({
+        queryKey: ['cart-item', cartId],
         queryFn: async () => {
             const res = await axiosSecure.get(`/carts/${cartId}`);
             return res.data;
-        }
+        },
+        enabled: !!cartId
     });
 
     if (isPending) {
-        return '...loading';
+        return <div className="flex justify-center py-10"><span className="loading loading-spinner loading-md text-emerald-500"></span></div>;
     }
 
-    const priceTk = medicineInfo.price;
-    const amountCents = priceTk * 100;
+    const priceTk = cartItem.price * (cartItem.quantity || 1);
+    const amountCents = Math.round(priceTk * 100);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (!stripe || !elements) {
-            return;
-        }
+        if (!stripe || !elements) return;
 
         const card = elements.getElement(CardElement);
-        if (card == null) {
+        if (card == null) return;
+
+        // --- STEP 1: Create Payment Method ---
+        const { error: methodError, paymentMethod } = await stripe.createPaymentMethod({
+            type: 'card',
+            card,
+            billing_details: {
+                name: user?.displayName || 'Anonymous',
+                email: user?.email || 'unknown',
+            },
+        });
+
+        if (methodError) {
+            setError(methodError.message);
             return;
         }
 
-        const { error, paymentMethod } = await stripe.createPaymentMethod({
-            type: 'card',
-            card
-        });
+        setError('');
 
-        if (error) {
-            setError(error.message);
-        } else {
-            setError('');
-            console.log('paymentMethod', paymentMethod);
-
-            // step -2 : create payment intent 
-            const res = await axiosSecure.post('/create-payment-intent', {
-                amountCents,
-                cartId
-            });
+        try {
+            // --- STEP 2: Create Intent on Backend ---
+            const res = await axiosSecure.post('/create-payment-intent', { amountCents });
             const clientSecret = res.data.clientSecret;
 
-            //STEP-3 :confirm payment 
-            const result = await stripe.confirmCardPayment(clientSecret, {
-                payment_method: {
-                    card: elements.getElement(CardElement),
-                    billing_details: {
-                        name: user.displayName,
-                        email: user.email
-                    },
-                },
+            // --- STEP 3: Confirm Payment using the paymentMethod ID ---
+            const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: paymentMethod.id, // ✅ Now using the paymentMethod we created
             });
 
-            if (error) {
-                setError(error.message);
-            } else if (result.paymentIntent.status === "succeeded") {
-                setError('');
-                console.log('payment successfully');
-                console.log(result);
-
-                // step -4 : payment save and history show 
+            if (confirmError) {
+                setError(confirmError.message);
+            } else if (paymentIntent.status === "succeeded") {
+                
+                // --- STEP 4: Prepare Data for History ---
                 const paymentData = {
-                    cartId,
-                    userEmail: user.email,                    // কে কিনলো
-                    sellerEmail: medicineInfo.sellerEmail,    // seller কে
+                    cartId: cartItem._id, 
+                    userEmail: user.email,
+                    sellerEmail: cartItem.sellerEmail, 
                     priceTk,
-                    transactionId: result.paymentIntent.id,
-                    paymentMethod: result.paymentIntent.payment_method_types,
+                    transactionId: paymentIntent.id,
+                    paymentMethodId: paymentMethod.id, // ✅ Saving the method ID
+                    cardBrand: paymentMethod.card.brand, // Optional: useful for invoice
                     status: "success",
                     paidAt: new Date()
                 };
 
+                // --- STEP 5: Save to Database ---
                 const paymentRes = await axiosSecure.post('/payments', paymentData);
+                
                 if (paymentRes.data.insertedId) {
                     Swal.fire({
-                        title: "Payment Successful ",
-                        text: "Your Medicine has been marked as paid.",
+                        title: "Payment Successful",
+                        text: `${cartItem.itemName} - Paid ${priceTk}৳`,
                         icon: "success",
-                        confirmButtonText: "Go to invoice",
+                        confirmButtonColor: "#10b981",
                     }).then(() => {
-                        // ✅ Redirect to invoice
                         navigate(`/invoice/${paymentRes.data.insertedId}`);
                     });
-                    refetch();
                 }
             }
+        } catch (err) {
+            setError("Server Error: Payment could not be processed.");
+            console.error(err);
         }
     };
 
     return (
-        <div>
-            <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-10 p-6 bg-white rounded-xl shadow-lg">
-                <CardElement className='p-2 ' />
+        <div className="max-w-md mx-auto mt-10 p-8 bg-white rounded-[2rem] shadow-xl border border-slate-100">
+            <h2 className="text-xl font-black text-slate-800 mb-2">Checkout</h2>
+            <p className="text-slate-500 text-sm mb-6">Paying for: <strong>{cartItem.itemName}</strong></p>
+
+            <form onSubmit={handleSubmit}>
+                <div className="p-4 border-2 border-slate-100 rounded-2xl mb-6">
+                    <CardElement options={{ style: { base: { fontSize: '16px' } } }} />
+                </div>
                 <button
                     type='submit'
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
-                    disabled={!stripe}
+                    className="btn btn-primary w-full bg-emerald-500 border-none hover:bg-emerald-600 text-white rounded-xl font-bold h-12 transition-all shadow-lg shadow-emerald-100"
+                    disabled={!stripe || amountCents < 50}
                 >
-                    Pay {priceTk} tk
+                    Pay {priceTk}৳ Now
                 </button>
-                {error && <p className='text-red-400'>{error}</p>}
+                {error && <p className='text-red-500 text-xs mt-4 bg-red-50 p-3 rounded-lg font-medium'>{error}</p>}
             </form>
         </div>
     );
