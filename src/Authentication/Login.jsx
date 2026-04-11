@@ -12,11 +12,9 @@ const Login = () => {
     formState: { errors },
   } = useForm();
 
-  // Submit handler
   const onSubmit = (data) => {
     console.log("Login Data:", data);
 
-    // 🚀 You can send this to backend (Node/Express + MongoDB) or Firebase
     loginUser(data.email, data.password)
       .then(result => {
         console.log(result.user);

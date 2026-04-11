@@ -18,7 +18,7 @@ export default function SocialLogin() {
                 const userData = {
 
                     email: user.email,
-                    role: 'user', //default
+                    role: 'user',
                     created_at: new Date().toISOString(),
                     last_log_in: new Date().toISOString()
                 }
@@ -30,11 +30,7 @@ export default function SocialLogin() {
             .catch(error => {
                 console.error("Google login error:", error);
             });
-
-
     }
-
-
     return (
         <div className="w-full">
             {/* OR divider */}
@@ -43,8 +39,6 @@ export default function SocialLogin() {
                 <span className="text-gray-500">OR</span>
                 <div className="flex-grow h-px bg-gray-300"></div>
             </div>
-
-            {/* Google Button */}
             <button
                 onClick={handleGoogleLogin}
                 className="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg shadow-md transition"

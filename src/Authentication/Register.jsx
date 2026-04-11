@@ -20,9 +20,6 @@ const Register = () => {
     // Submit handler
     const onSubmit = (data) => {
         console.log("Form Data:", data);
-
-        // 🚀 You can send this data to backend (Node/Express + MongoDB)
-
         registerUser(data.email, data.password)
             .then(async(result) => {
                 console.log("User Registered:", result.user);
@@ -39,8 +36,6 @@ const Register = () => {
 
                 const userRes = await axiosInstance.post('/users',userData);
                 console.log(userRes.data);
-
-                //update profile information in firebase
                 const updateInfo = {
                     displayName: data.username,
                     photoURL: profilePic
@@ -73,10 +68,6 @@ const Register = () => {
         const res = await axios.post(imageUrl, formData)
         console.log(res);
         setProfilePic(res.data.data.url);
-
-
-
-
     }
 
     return (
@@ -157,8 +148,6 @@ const Register = () => {
                     Sign Up
                 </button>
             </form>
-
-            {/* Already have an account */}
             <p className="text-sm mt-4 text-center text-black">
                 Already have an account?{" "}
                 <a href="/login" className="link link-primary">

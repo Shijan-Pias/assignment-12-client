@@ -13,8 +13,6 @@ const UpdateProfile = () => {
     const [name, setName] = useState("");
     const [photoURL, setPhotoURL] = useState("");
     const [loading, setLoading] = useState(false);
-
-    // 1. Load user data when component mounts
     useEffect(() => {
         if (user) {
             setName(user.displayName || "");
@@ -27,13 +25,10 @@ const UpdateProfile = () => {
         setLoading(true);
 
         try {
-            // 2. Update Firebase Profile (Frontend Update)
             await updateProfile(auth.currentUser, {
                 displayName: name,
                 photoURL: photoURL
             });
-
-            // 3. Update Database (Backend Update)
             const res = await axiosSecure.put(`/users/email/${user.email}`, {
                 name: name,
                 profilePic: photoURL,
@@ -46,7 +41,7 @@ const UpdateProfile = () => {
                     icon: "success",
                     confirmButtonColor: "#10B981"
                 }).then(() => {
-                    window.location.reload(); // Refresh to see changes everywhere
+                    window.location.reload();
                 });
             }
         } catch (error) {
@@ -65,8 +60,6 @@ const UpdateProfile = () => {
         <div className="flex justify-center items-center min-h-screen bg-slate-50 pt-20">
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
                 <h2 className="text-3xl font-bold text-center text-slate-800 mb-6">Update Profile</h2>
-
-                {/* Profile Preview */}
                 <div className="flex justify-center mb-6">
                     <div className="avatar">
                         <div className="w-24 rounded-full ring ring-emerald-500 ring-offset-base-100 ring-offset-2">
@@ -90,8 +83,6 @@ const UpdateProfile = () => {
                             required
                         />
                     </div>
-
-                    {/* Photo URL Input */}
                     <div className="form-control">
                         <label className="label">
                             <span className="label-text font-semibold text-slate-600">Photo URL</span>
@@ -105,8 +96,6 @@ const UpdateProfile = () => {
                             required
                         />
                     </div>
-
-                    {/* Submit Button */}
                     <div className="form-control mt-6">
                         <button 
                             type="submit" 

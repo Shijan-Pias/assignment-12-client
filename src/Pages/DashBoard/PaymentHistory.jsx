@@ -2,121 +2,154 @@ import React from 'react';
 import { useQuery } from "@tanstack/react-query";
 import UseAuth from "../../hook/UseAuth";
 import UseAxiosSecure from "../../hook/UseAxiosSecure";
-import { FaFileInvoiceDollar, FaHistory, FaCalendarAlt, FaHashtag } from "react-icons/fa";
+import { 
+  FaHistory, 
+  FaHashtag, 
+  FaDownload, 
+  FaWallet, 
+  FaShieldAlt, 
+  FaSearchDollar 
+} from "react-icons/fa";
+import { motion } from "framer-motion";
+import { Link } from "react-router"; // Added this to prevent crash
 
 const PaymentHistory = () => {
     const { user } = UseAuth();
     const axiosSecure = UseAxiosSecure();
 
     const { isLoading, data: payments = [] } = useQuery({
-        queryKey: ['payments', user.email],
+        queryKey: ['payments', user?.email],
         queryFn: async () => {
-            const res = await axiosSecure.get(`/payments?email=${user.email}`)
-            return res.data.data;
-        }
+            if (!user?.email) return [];
+            const res = await axiosSecure.get(`/payments?email=${user.email}`);
+            // Check if data exists and is an array, otherwise return empty array
+            return Array.isArray(res.data.data) ? res.data.data : [];
+        },
+        enabled: !!user?.email // Only run query if email exists
     });
 
-    // Loading Skeleton (Better UX than just text)
+    // ✅ FIXED CALCULATION LOGIC (Added safety check)
+    const totalSpent = Array.isArray(payments) 
+        ? payments.reduce((acc, curr) => acc + parseFloat(curr.priceTk || 0), 0) 
+        : 0;
+
     if (isLoading) {
         return (
-            <div className="max-w-5xl mx-auto mt-10 p-6">
-                <div className="animate-pulse space-y-4">
-                    <div className="h-12 bg-gray-200 rounded w-1/4"></div>
-                    <div className="h-64 bg-gray-200 rounded-xl"></div>
-                </div>
+            <div className="max-w-6xl mx-auto mt-10 p-6 space-y-6">
+                <div className="h-20 bg-slate-200 animate-pulse rounded-3xl"></div>
+                <div className="h-[400px] bg-slate-100 animate-pulse rounded-[2.5rem]"></div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-6xl mx-auto mt-10 p-6 bg-slate-50 min-h-screen">
-            
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+        <div className="w-full mx-auto py-10 px-4 sm:px-6 lg:px-8 bg-[#F8FAFC] min-h-screen font-sans text-slate-900">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-12 gap-6">
                 <div>
-                    <h2 className="text-3xl font-bold text-slate-800 flex items-center gap-2">
-                        <FaHistory className="text-emerald-600" /> Payment History
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                            <FaShieldAlt size={20} />
+                        </div>
+                        <span className="text-emerald-600 font-bold text-xs uppercase tracking-widest">Secure Ledger</span>
+                    </div>
+                    <h2 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                        Payment History
                     </h2>
-                    <p className="text-slate-500 mt-1">Track all your past transactions securely.</p>
+                    <p className="text-slate-500 mt-2 font-medium">Verified transaction records for {user?.displayName}</p>
                 </div>
-                <div className="bg-white px-6 py-3 rounded-xl shadow-sm border border-emerald-100 mt-4 md:mt-0">
-                    <span className="text-slate-500 text-sm">Total Transactions</span>
-                    <p className="text-2xl font-bold text-emerald-600">{payments.length}</p>
+
+                <div className="flex gap-4 w-full lg:w-auto">
+                    <motion.div 
+                        initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                        className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 flex-1 lg:min-w-[240px]"
+                    >
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Total Investment</span>
+                            <FaWallet className="text-emerald-500" />
+                        </div>
+                        <p className="text-3xl font-black text-slate-900 leading-none">৳{totalSpent.toFixed(2)}</p>
+                    </motion.div>
                 </div>
             </div>
-
-            {/* Table Container */}
-            <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-100">
+            <div className="bg-white shadow-2xl shadow-slate-200/60 rounded-[2.5rem] border border-slate-100 overflow-hidden">
                 {payments.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
-                            {/* Table Head */}
-                            <thead className="bg-emerald-50 text-emerald-800">
-                                <tr>
-                                    <th className="p-5 text-sm font-semibold uppercase tracking-wider">#</th>
-                                    <th className="p-5 text-sm font-semibold uppercase tracking-wider">Transaction ID</th>
-                                    <th className="p-5 text-sm font-semibold uppercase tracking-wider">Amount</th>
-                                    <th className="p-5 text-sm font-semibold uppercase tracking-wider">Status</th>
-                                    <th className="p-5 text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
-                                        <FaCalendarAlt /> Date
-                                    </th>
+                            <thead>
+                                <tr className="bg-slate-50/50 border-b border-slate-100">
+                                    <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Transaction ID</th>
+                                    <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Amount</th>
+                                    <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Status</th>
+                                    <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Date & Time</th>
                                 </tr>
                             </thead>
-
-                            {/* Table Body */}
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-slate-50">
                                 {payments.map((pay, index) => (
-                                    <tr 
-                                        key={pay._id} 
-                                        className="hover:bg-slate-50 transition-colors duration-200"
+                                    <motion.tr 
+                                        key={pay._id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.05 }}
+                                        className="hover:bg-slate-50/80 transition-colors group"
                                     >
-                                        <td className="p-5 text-slate-500 font-medium">
-                                            {index + 1}
+                                        <td className="p-8">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 group-hover:bg-white transition-colors">
+                                                    <FaHashtag size={12}/>
+                                                </div>
+                                                <span className="font-mono text-sm font-bold text-slate-700 tracking-tighter uppercase">
+                                                    {pay.transactionId?.slice(-15)}
+                                                </span>
+                                            </div>
                                         </td>
-                                        
-                                        <td className="p-5">
-                                            <span className="font-mono text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">
-                                                <FaHashtag className="inline mr-1 text-[10px]"/>
-                                                {pay.transactionId}
+
+                                        <td className="p-8 text-center">
+                                            <span className="text-xl font-black text-slate-900 tracking-tight">
+                                                ৳{pay.priceTk}
                                             </span>
                                         </td>
 
-                                        <td className="p-5">
-                                            <span className="text-emerald-600 font-bold text-lg">
-                                                ${pay.priceTk}
+                                        <td className="p-8 text-center">
+                                            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest border border-emerald-100 shadow-sm">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                Verified Paid
                                             </span>
                                         </td>
 
-                                        <td className="p-5">
-                                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                Paid
-                                            </span>
+                                        <td className="p-8 text-center">
+                                            <div className="flex flex-col items-center">
+                                                <span className="font-bold text-slate-800 text-sm">
+                                                    {new Date(pay.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 font-bold uppercase">
+                                                    {new Date(pay.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
                                         </td>
 
-                                        <td className="p-5 text-slate-500 text-sm">
-                                            {new Date(pay.createdAt).toLocaleDateString('en-US', {
-                                                year: 'numeric',
-                                                month: 'short',
-                                                day: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })}
-                                        </td>
-                                    </tr>
+                                    </motion.tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 ) : (
-                    // Empty State Design
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="bg-gray-100 p-4 rounded-full mb-4">
-                            <FaFileInvoiceDollar className="text-4xl text-gray-400" />
+                    <div className="flex flex-col items-center justify-center py-24 text-center px-6">
+                        <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 border-2 border-dashed border-slate-200">
+                            <FaSearchDollar className="text-4xl text-slate-300" />
                         </div>
-                        <h3 className="text-xl font-semibold text-slate-700">No Payment History</h3>
-                        <p className="text-slate-500 mt-2">You haven't made any transactions yet.</p>
+                        <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2 uppercase tracking-widest">No Records Found</h3>
+                        <p className="text-slate-500 max-w-xs mx-auto font-medium">Your pharmaceutical purchase history is currently empty.</p>
+                        <Link to="/shop" className="mt-8 px-8 py-4 bg-emerald-500 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-emerald-200 hover:bg-emerald-600 transition-all active:scale-95">
+                            Browse Store
+                        </Link>
                     </div>
                 )}
+            </div>
+
+            {/* --- FOOTER --- */}
+            <div className="mt-12 flex flex-col items-center gap-2 pb-10">
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">Encrypted Pharmaceutical Ledger</p>
+                <div className="h-1 w-12 bg-emerald-200 rounded-full" />
             </div>
         </div>
     );

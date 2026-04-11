@@ -24,7 +24,6 @@ import SellerPaymentHistory from "../Pages/DashBoard/SellerDashBoard/SellerPayme
 import ManageMedicinesAdmin from "../Pages/DashBoard/SellerDashBoard/ManageMedicines";
 import ManageCategoriesAdmin from "../Pages/DashBoard/MakeAdmin/ManageCategory";
 import AdminPayments from "../Pages/DashBoard/MakeAdmin/AdminPayment";
-import ReportAdmin from "../Pages/DashBoard/MakeAdmin/ReportPage";
 import CategoryCardSection from "../Pages/Home/CategoryCardSection";
 import DiscountProducts from "../Pages/Home/DiscountProduct";
 import SellerRoutes from "../Routes/SellerRoutes";

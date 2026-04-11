@@ -42,13 +42,12 @@ const CartPage = () => {
         onSuccess: () => queryClient.invalidateQueries(["carts", user.email]),
     });
 
-    const clearCart = useMutation({
-        mutationFn: () => axiosSecure.delete(`/carts/user/${user.email}`),
-        onSuccess: () => queryClient.invalidateQueries(["carts", user.email]),
-    });
+    // const clearCart = useMutation({
+    //     mutationFn: () => axiosSecure.delete(`/carts/user/${user.email}`),
+    //     onSuccess: () => queryClient.invalidateQueries(["carts", user.email]),
+    // });
 
-    // Calculations for the current session
-    const pendingItems = cartItems.filter(item => item.status === "pending");
+    // const pendingItems = cartItems.filter(item => item.status === "pending");
     
     // Total Spent Calculation (Historical data)
     const totalSpent = paymentHistory.reduce((acc, curr) => acc + parseFloat(curr.priceTk || 0), 0);
