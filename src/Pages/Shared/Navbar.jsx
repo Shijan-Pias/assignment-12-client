@@ -1,176 +1,695 @@
-import React, { useState, useEffect } from 'react';
-import { Link, NavLink, useNavigate, useLocation } from 'react-router'; 
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
-// ✅ Fixed: Changed FaLayout to FaThLarge
-import { FaShoppingCart, FaSearch, FaChevronDown, FaUserCircle, FaSignOutAlt, FaThLarge } from 'react-icons/fa';
-import { useQuery } from "@tanstack/react-query";
-import FirstLogo from './FirstLogo';
+import {
+  FaShoppingCart, FaSearch, FaChevronDown, FaUserCircle,
+  FaSignOutAlt, FaThLarge, FaBars, FaTimes, FaBell,
+  FaHome, FaPills, FaClipboardList, FaChevronRight
+} from 'react-icons/fa';
+import { useQuery } from '@tanstack/react-query';
 import UseAuth from '../../hook/UseAuth';
 import UseAxiosSecure from '../../hook/UseAxiosSecure';
 
+/* ─────────────────────────────────────────────
+   Logo mark — inline SVG cross pill icon
+───────────────────────────────────────────── */
+const LogoIcon = () => (
+  <div style={{
+    width: 38, height: 38, borderRadius: 11,
+    background: 'linear-gradient(135deg, #00e5a0 0%, #00a86b 100%)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0, boxShadow: '0 0 18px rgba(0,229,160,0.25)'
+  }}>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+      <path d="M19 3H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 
+        2-2V5c0-1.1-.9-2-2-2zm-7 3c.55 0 1 .45 1 1v3h3c.55 0 1 .45 1 
+        1s-.45 1-1 1h-3v3c0 .55-.45 1-1 1s-1-.45-1-1v-3H8c-.55 
+        0-1-.45-1-1s.45-1 1-1h3V7c0-.55.45-1 1-1z"/>
+    </svg>
+  </div>
+);
+
+/* ─────────────────────────────────────────────
+   Main Navbar
+───────────────────────────────────────────── */
 const Navbar = () => {
   const { logoutUser, user } = UseAuth();
   const axiosSecure = UseAxiosSecure();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+  const [isScrolled, setIsScrolled]       = useState(false);
+  const [mobileOpen, setMobileOpen]       = useState(false);
+  const [searchOpen, setSearchOpen]       = useState(false);
+  const [dropdownOpen, setDropdownOpen]   = useState(false);
+  const [searchQuery, setSearchQuery]     = useState('');
+
+  const dropdownRef = useRef(null);
+  const searchRef   = useRef(null);
+
+  /* Cart query */
   const { data: cart = [] } = useQuery({
-    queryKey: ["carts", user?.email],
+    queryKey: ['carts', user?.email],
     enabled: !!user?.email,
     queryFn: async () => {
-        const res = await axiosSecure.get(`/carts?userEmail=${user.email}`);
-        return res.data;
+      const res = await axiosSecure.get(`/carts?userEmail=${user.email}`);
+      return res.data;
     },
   });
 
+  /* Scroll listener */
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  /* Close dropdown on outside click */
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target))
+        setDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  /* Close mobile menu on route change */
+  useEffect(() => {
+    setMobileOpen(false);
+    setSearchOpen(false);
+  }, [location.pathname]);
+
+  /* Lock body scroll when mobile menu open */
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    const text = e.target.search.value;
-    navigate(text ? `/shopPage?search=${text}` : '/shopPage');
+    if (searchQuery.trim()) {
+      navigate(`/shopPage?search=${searchQuery.trim()}`);
+      setSearchOpen(false);
+      setSearchQuery('');
+    }
   };
 
   const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'All Medicines', path: '/shopPage' },
+    { name: 'Home',        path: '/',         icon: <FaHome size={13} /> },
+    { name: 'Medicines',   path: '/shopPage', icon: <FaPills size={13} /> }
   ];
 
-  return (
-    <nav 
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
-        isScrolled 
-        ? "bg-slate-950/80 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] py-2" 
-        : "bg-slate-950 py-5"
-      }`}
-    >
-      <div className="max-w-[1440px] mx-auto px-6 md:px-12 flex items-center justify-between gap-8 text-white">
-        
-        <motion.div 
-          whileHover={{ scale: 1.05 }} 
-          whileTap={{ scale: 0.95 }}
-          className="shrink-0 cursor-pointer"
-          onClick={() => navigate('/')}
-        >
-          <FirstLogo />
-        </motion.div>
+  /* ── Shared style tokens ── */
+  const S = {
+    nav: {
+      position: 'fixed', top: 0, left: 0, width: '100%', zIndex: 1000,
+      background: isScrolled
+        ? 'rgba(8,13,26,0.85)'
+        : '#08131e',
+      backdropFilter: isScrolled ? 'blur(20px)' : 'none',
+      borderBottom: '1px solid rgba(0,229,160,0.08)',
+      transition: 'all 0.4s ease',
+      boxShadow: isScrolled ? '0 8px 40px rgba(0,0,0,0.4)' : 'none',
+    },
+    inner: {
+      maxWidth: 1440, margin: '0 auto',
+      padding: '0 24px',
+      height: 68,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: 16,
+    },
+  };
 
-        <div className="hidden lg:flex items-center flex-1 justify-center gap-10">
-          <ul className="flex items-center gap-8 text-sm font-semibold tracking-wide">
-            {navLinks.map((link) => (
-              <li key={link.path} className="relative group">
-                <NavLink 
-                  to={link.path} 
-                  className={({ isActive }) => 
-                    `transition-colors duration-300 ${isActive ? "text-emerald-400" : "text-slate-300 hover:text-white"}`
-                  }
-                >
-                  {link.name}
-                  {location.pathname === link.path && (
-                    <motion.div 
-                      layoutId="navUnderline"
-                      className="absolute -bottom-1 left-0 w-full h-0.5 bg-emerald-400 rounded-full"
-                    />
+  return (
+    <>
+      {/* ════════════════════════════════════
+          MAIN NAV BAR
+      ════════════════════════════════════ */}
+      <nav style={S.nav}>
+        {/* Accent bottom line */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(0,229,160,0.4), transparent)',
+        }} />
+
+        <div style={S.inner}>
+
+          {/* ── LOGO ── */}
+          <motion.div
+            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flexShrink: 0 }}
+            onClick={() => navigate('/')}
+          >
+            <LogoIcon />
+            <div style={{ lineHeight: 1.2 }}>
+              <div style={{
+                fontFamily: "'Syne', sans-serif",
+                fontWeight: 800, fontSize: 17,
+                color: '#f0f4ff', letterSpacing: '-0.4px',
+              }}>
+                MediCore
+              </div>
+              <div style={{
+                fontSize: 9, fontWeight: 600, color: '#00e5a0',
+                letterSpacing: '2.5px', textTransform: 'uppercase',
+              }}>
+                Pharmacy Suite
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ── DESKTOP NAV LINKS ── */}
+          <div style={{
+            display: 'none',
+            // shown via className below — Tailwind handles responsive
+          }}
+            className="hidden lg:flex items-center gap-2 flex-1 justify-center"
+          >
+            {/* Pill nav group */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 2,
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 14, padding: 4,
+            }}>
+              {navLinks.map((link) => (
+                <NavLink key={link.path} to={link.path}>
+                  {({ isActive }) => (
+                    <motion.div
+                      whileTap={{ scale: 0.96 }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '8px 16px', borderRadius: 10,
+                        fontSize: 13, fontWeight: 600,
+                        color: isActive ? '#00e5a0' : 'rgba(240,244,255,0.55)',
+                        background: isActive ? 'rgba(0,229,160,0.08)' : 'transparent',
+                        border: `1px solid ${isActive ? 'rgba(0,229,160,0.18)' : 'transparent'}`,
+                        transition: 'all 0.2s',
+                        cursor: 'pointer', textDecoration: 'none',
+                      }}
+                    >
+                      <span style={{ opacity: isActive ? 1 : 0.6 }}>{link.icon}</span>
+                      {link.name}
+                    </motion.div>
                   )}
                 </NavLink>
-              </li>
-            ))}
-          </ul>
-
-          <form 
-            onSubmit={handleSearch} 
-            className={`relative flex-1 transition-all duration-500 ease-out ${isSearchFocused ? "max-w-[400px]" : "max-w-[280px]"}`}
-          >
-            <div className={`absolute inset-y-0 left-4 flex items-center transition-colors ${isSearchFocused ? "text-emerald-400" : "text-slate-500"}`}>
-              <FaSearch size={14} />
+              ))}
             </div>
-            <input 
-              type="text" 
-              name="search"
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
-              placeholder="Find medication..." 
-              className="w-full h-11 bg-slate-900/50 border border-slate-700/50 rounded-2xl pl-11 pr-4 text-sm outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 transition-all text-white placeholder-slate-500"
-            />
-          </form>
-        </div>
 
-        <div className="flex items-center gap-5">
-          <Link to="/myCart" className="relative p-3 bg-slate-900/50 rounded-2xl hover:bg-slate-800 transition-all border border-slate-800/50 group active:scale-90">
-            <FaShoppingCart className="text-slate-300 group-hover:text-emerald-400 transition-colors" size={18} />
-            <AnimatePresence>
-              {cart?.length > 0 && (
-                <motion.span 
-                  initial={{ scale: 0, opacity: 0 }} 
-                  animate={{ scale: 1, opacity: 1 }} 
-                  exit={{ scale: 0, opacity: 0 }}
-                  className="absolute -top-1 -right-1 bg-emerald-500 text-[10px] font-black text-slate-950 h-5 w-5 rounded-full flex items-center justify-center border-2 border-slate-950 shadow-lg"
-                >
-                  {cart.length}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </Link>
-          
-          {!user ? (
-            <Link to="/login">
-              <motion.button 
-                whileHover={{ scale: 1.02 }} 
-                whileTap={{ scale: 0.98 }}
-                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] uppercase tracking-[0.15em] px-7 py-3.5 rounded-2xl transition-all shadow-xl shadow-emerald-500/10"
-              >
-                Get Started
-              </motion.button>
+            {/* Desktop Search */}
+            <DesktopSearch
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              handleSearch={handleSearch}
+            />
+          </div>
+
+          {/* ── RIGHT ACTIONS ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+
+            {/* Mobile search icon */}
+            <IconButton
+              className="flex lg:hidden"
+              onClick={() => setSearchOpen(true)}
+              title="Search"
+            >
+              <FaSearch size={14} />
+            </IconButton>
+
+            {/* Cart */}
+            <Link to="/myCart" style={{ textDecoration: 'none' }}>
+              <IconButton style={{ position: 'relative' }} title="Cart">
+                <FaShoppingCart size={15} />
+                <AnimatePresence>
+                  {cart?.length > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                      style={{
+                        position: 'absolute', top: -5, right: -5,
+                        background: '#00e5a0', color: '#08131e',
+                        fontSize: 9, fontWeight: 900,
+                        width: 18, height: 18, borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        border: '2px solid #08131e',
+                      }}
+                    >
+                      {cart.length > 9 ? '9+' : cart.length}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </IconButton>
             </Link>
-          ) : (
-            <div className="dropdown dropdown-end">
-              <div tabIndex={0} role="button" className="group flex items-center gap-2 p-1 pr-3 bg-slate-900/50 rounded-full border border-slate-800/50 hover:border-emerald-500/30 transition-all cursor-pointer">
-                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-emerald-500/20 group-hover:border-emerald-500/50 transition-colors">
-                  <img src={user?.photoURL} alt="user" className="w-full h-full object-cover" />
+
+            {/* Auth section */}
+            {!user ? (
+              <Link to="/login" style={{ textDecoration: 'none' }}>
+                <motion.button
+                  whileHover={{ scale: 1.02, opacity: 0.92 }}
+                  whileTap={{ scale: 0.97 }}
+                  style={{
+                    background: 'linear-gradient(135deg, #00e5a0, #00a86b)',
+                    color: '#050d1a', fontWeight: 800, fontSize: 12,
+                    padding: '10px 20px', borderRadius: 12, border: 'none',
+                    cursor: 'pointer', letterSpacing: '0.5px',
+                    fontFamily: "'DM Sans', sans-serif",
+                    boxShadow: '0 4px 20px rgba(0,229,160,0.25)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                 Login
+                </motion.button>
+              </Link>
+            ) : (
+              /* User dropdown */
+              <div ref={dropdownRef} style={{ position: 'relative' }}>
+                <motion.div
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 50, padding: '4px 12px 4px 4px',
+                    cursor: 'pointer', transition: 'border-color 0.2s',
+                  }}
+                >
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    overflow: 'hidden',
+                    border: '2px solid rgba(0,229,160,0.3)',
+                  }}>
+                    <img
+                      src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName}&background=00e5a0&color=050d1a`}
+                      alt="avatar"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
+                  <span
+                    className="hidden sm:block"
+                    style={{ fontSize: 13, fontWeight: 600, color: '#f0f4ff', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  >
+                    {user?.displayName?.split(' ')[0]}
+                  </span>
+                  <motion.div
+                    animate={{ rotate: dropdownOpen ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <FaChevronDown size={10} color="rgba(240,244,255,0.4)" />
+                  </motion.div>
+                </motion.div>
+
+                {/* Dropdown menu */}
+                <AnimatePresence>
+                  {dropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                      transition={{ duration: 0.18 }}
+                      style={{
+                        position: 'absolute', top: 'calc(100% + 12px)', right: 0,
+                        background: '#0d1828',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 18, padding: 8, width: 240,
+                        boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+                        zIndex: 200,
+                      }}
+                    >
+                      {/* Header */}
+                      <div style={{
+                        padding: '10px 14px 12px',
+                        borderBottom: '1px solid rgba(255,255,255,0.07)',
+                        marginBottom: 6,
+                      }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: '#00e5a0', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 3 }}>
+                          Authenticated
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#f0f4ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {user?.displayName}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'rgba(240,244,255,0.4)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {user?.email}
+                        </div>
+                      </div>
+
+                      {[
+                        { to: '/dashboard',     icon: <FaThLarge size={13} />,     label: 'Dashboard Console' },
+                        { to: '/updateProfile', icon: <FaUserCircle size={13} />,  label: 'Profile Settings' },
+                      ].map((item) => (
+                        <Link key={item.to} to={item.to} style={{ textDecoration: 'none' }}
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <div style={ddItemStyle(false)}>
+                            <span style={{ opacity: 0.7 }}>{item.icon}</span>
+                            {item.label}
+                            <FaChevronRight size={9} style={{ marginLeft: 'auto', opacity: 0.3 }} />
+                          </div>
+                        </Link>
+                      ))}
+
+                      <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '6px 0' }} />
+
+                      <button
+                        onClick={() => { logoutUser(); setDropdownOpen(false); }}
+                        style={{ ...ddItemStyle(true), width: '100%', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        <FaSignOutAlt size={13} />
+                        End Session
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* Mobile hamburger */}
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="flex lg:hidden"
+              style={{
+                width: 40, height: 40, borderRadius: 11,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', color: 'rgba(240,244,255,0.7)',
+                marginLeft: 4,
+              }}
+            >
+              <AnimatePresence mode="wait">
+                {mobileOpen
+                  ? <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}><FaTimes size={15} /></motion.div>
+                  : <motion.div key="b" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}><FaBars size={15} /></motion.div>
+                }
+              </AnimatePresence>
+            </motion.button>
+          </div>
+        </div>
+      </nav>
+
+      {/* ════════════════════════════════════
+          MOBILE SLIDE DRAWER
+      ════════════════════════════════════ */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 998,
+                background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+              }}
+            />
+
+            {/* Drawer */}
+            <motion.div
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              style={{
+                position: 'fixed', top: 0, right: 0, bottom: 0,
+                width: 300, zIndex: 999,
+                background: '#0a1424',
+                borderLeft: '1px solid rgba(0,229,160,0.1)',
+                overflowY: 'auto',
+              }}
+            >
+              {/* Drawer header */}
+              <div style={{
+                padding: '20px 20px 16px',
+                borderBottom: '1px solid rgba(255,255,255,0.07)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <LogoIcon />
+                  <div>
+                    <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 16, color: '#f0f4ff' }}>MediCore</div>
+                    <div style={{ fontSize: 9, color: '#00e5a0', letterSpacing: '2px', textTransform: 'uppercase' }}>Pharmacy Suite</div>
+                  </div>
                 </div>
-                <FaChevronDown size={10} className="text-slate-500 group-hover:text-emerald-400 transition-transform duration-300 group-focus:rotate-180" />
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setMobileOpen(false)}
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(240,244,255,0.6)' }}
+                >
+                  <FaTimes size={13} />
+                </motion.button>
               </div>
 
-              <motion.ul 
-                tabIndex={0} 
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="dropdown-content mt-4 z-[1] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-slate-950 border border-slate-800 rounded-[1.5rem] w-64 overflow-hidden"
+              {/* Search in drawer */}
+              <div style={{ padding: '16px 20px' }}>
+                <form onSubmit={handleSearch} style={{ position: 'relative' }}>
+                  <FaSearch size={13} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(240,244,255,0.3)' }} />
+                  <input
+                    type="text" value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search medicines..."
+                    style={{
+                      width: '100%', height: 42,
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 12, paddingLeft: 40, paddingRight: 14,
+                      color: '#f0f4ff', fontSize: 13, fontFamily: 'inherit',
+                      outline: 'none',
+                    }}
+                  />
+                </form>
+              </div>
+
+              {/* Nav links */}
+              <div style={{ padding: '0 12px' }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(240,244,255,0.25)', letterSpacing: '2px', textTransform: 'uppercase', padding: '0 8px 10px' }}>
+                  Navigation
+                </div>
+                {navLinks.map((link, i) => (
+                  <motion.div
+                    key={link.path}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                  >
+                    <NavLink to={link.path} style={{ textDecoration: 'none' }}>
+                      {({ isActive }) => (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '13px 14px', borderRadius: 12, marginBottom: 4,
+                          background: isActive ? 'rgba(0,229,160,0.08)' : 'transparent',
+                          color: isActive ? '#00e5a0' : 'rgba(240,244,255,0.6)',
+                          fontWeight: 600, fontSize: 14,
+                          border: `1px solid ${isActive ? 'rgba(0,229,160,0.15)' : 'transparent'}`,
+                          transition: 'all 0.15s',
+                        }}>
+                          <span style={{ opacity: isActive ? 1 : 0.6 }}>{link.icon}</span>
+                          {link.name}
+                          <FaChevronRight size={10} style={{ marginLeft: 'auto', opacity: 0.3 }} />
+                        </div>
+                      )}
+                    </NavLink>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* User section in drawer */}
+              {user && (
+                <div style={{ padding: '16px 12px' }}>
+                  <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginBottom: 16 }} />
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(240,244,255,0.25)', letterSpacing: '2px', textTransform: 'uppercase', padding: '0 8px 10px' }}>
+                    Account
+                  </div>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 14px', borderRadius: 12,
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    marginBottom: 8,
+                  }}>
+                    <div style={{ width: 38, height: 38, borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(0,229,160,0.3)', flexShrink: 0 }}>
+                      <img src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName}&background=00e5a0&color=050d1a`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                    <div style={{ overflow: 'hidden' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#f0f4ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.displayName}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(240,244,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
+                    </div>
+                  </div>
+                  {[
+                    { to: '/dashboard',     icon: <FaThLarge size={12} />,    label: 'Dashboard' },
+                    { to: '/updateProfile', icon: <FaUserCircle size={12} />, label: 'Profile Settings' },
+                  ].map((item) => (
+                    <Link key={item.to} to={item.to} style={{ textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, color: 'rgba(240,244,255,0.6)', fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
+                        <span style={{ opacity: 0.6 }}>{item.icon}</span>
+                        {item.label}
+                      </div>
+                    </Link>
+                  ))}
+                  <button
+                    onClick={() => { logoutUser(); setMobileOpen(false); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 14px', borderRadius: 12, width: '100%',
+                      background: 'rgba(255,77,109,0.08)', border: '1px solid rgba(255,77,109,0.15)',
+                      color: '#ff4d6d', fontSize: 13, fontWeight: 700,
+                      cursor: 'pointer', fontFamily: 'inherit', marginTop: 8,
+                    }}
+                  >
+                    <FaSignOutAlt size={12} /> End Session
+                  </button>
+                </div>
+              )}
+
+              {!user && (
+                <div style={{ padding: '16px 20px' }}>
+                  <Link to="/login" style={{ textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>
+                    <button style={{
+                      width: '100%', padding: '13px',
+                      background: 'linear-gradient(135deg, #00e5a0, #00a86b)',
+                      color: '#050d1a', fontWeight: 800, fontSize: 14,
+                      borderRadius: 14, border: 'none', cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}>
+                      Get Started →
+                    </button>
+                  </Link>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ════════════════════════════════════
+          MOBILE SEARCH OVERLAY
+      ════════════════════════════════════ */}
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            style={{
+              position: 'fixed', top: 68, left: 0, right: 0, zIndex: 997,
+              background: '#0a1424',
+              borderBottom: '1px solid rgba(0,229,160,0.1)',
+              padding: '14px 20px',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+            }}
+          >
+            <form onSubmit={handleSearch} style={{ display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <FaSearch size={13} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(240,244,255,0.3)' }} />
+                <input
+                  ref={searchRef}
+                  autoFocus
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search medicines, brands, generics..."
+                  style={{
+                    width: '100%', height: 46,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(0,229,160,0.3)',
+                    borderRadius: 14, paddingLeft: 42, paddingRight: 14,
+                    color: '#f0f4ff', fontSize: 14, fontFamily: 'inherit', outline: 'none',
+                  }}
+                />
+              </div>
+              <button
+                type="submit"
+                style={{
+                  padding: '0 20px', borderRadius: 14,
+                  background: 'linear-gradient(135deg, #00e5a0, #00a86b)',
+                  color: '#050d1a', fontWeight: 800, fontSize: 13,
+                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                }}
               >
-                <div className="px-4 py-4 border-b border-slate-800/50 bg-slate-900/30">
-                   <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Authenticated Account</p>
-                   <p className="text-sm font-bold text-white truncate">{user?.displayName}</p>
-                </div>
-                
-                <div className="p-1 space-y-1 mt-1 list-none text-left">
-                    <li><Link to="/dashboard" className="flex items-center gap-3 p-3 hover:bg-emerald-500/10 text-slate-300 hover:text-emerald-400 rounded-xl transition-all font-medium text-sm">
-                      <FaThLarge size={14}/> Dashboard Console
-                    </Link></li>
-                    <li><Link to="/updateProfile" className="flex items-center gap-3 p-3 hover:bg-emerald-500/10 text-slate-300 hover:text-emerald-400 rounded-xl transition-all font-medium text-sm">
-                      <FaUserCircle size={14}/> Security Settings
-                    </Link></li>
-                </div>
-                
-                <div className="divider before:bg-slate-800 after:bg-slate-800 my-0 px-2"></div>
-                
-                <div className="p-1 list-none text-left">
-                    <li><button onClick={logoutUser} className="flex items-center gap-3 p-3 w-full text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all font-bold text-sm">
-                      <FaSignOutAlt size={14}/> End Session
-                    </button></li>
-                </div>
-              </motion.ul>
-            </div>
-          )}
-        </div>
-      </div>
-    </nav>
+                Search
+              </button>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                style={{
+                  width: 46, height: 46, borderRadius: 14,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(240,244,255,0.5)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <FaTimes size={14} />
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Spacer so page content doesn't hide under fixed navbar */}
+      <div style={{ height: 68 }} />
+    </>
   );
 };
+
+/* ─────────────────────────────────────────────
+   Sub-components
+───────────────────────────────────────────── */
+
+const DesktopSearch = ({ searchQuery, setSearchQuery, handleSearch }) => {
+  const [focused, setFocused] = useState(false);
+  return (
+    <form
+      onSubmit={handleSearch}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        background: 'rgba(255,255,255,0.04)',
+        border: `1px solid ${focused ? 'rgba(0,229,160,0.35)' : 'rgba(255,255,255,0.07)'}`,
+        borderRadius: 14, padding: '0 14px', height: 42,
+        flex: 1, maxWidth: focused ? 300 : 220,
+        transition: 'all 0.3s ease',
+      }}
+    >
+      <FaSearch size={12} color={focused ? '#00e5a0' : 'rgba(240,244,255,0.3)'} style={{ flexShrink: 0, transition: 'color 0.2s' }} />
+      <input
+        type="text"
+        name="search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder="Find medication..."
+        style={{
+          background: 'none', border: 'none', outline: 'none',
+          color: '#f0f4ff', fontSize: 13, fontFamily: 'inherit', width: '100%',
+        }}
+      />
+    </form>
+  );
+};
+
+const IconButton = ({ children, className = '', style = {}, ...props }) => (
+  <motion.button
+    whileTap={{ scale: 0.9 }}
+    className={className}
+    style={{
+      width: 40, height: 40, borderRadius: 12,
+      background: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      cursor: 'pointer', color: 'rgba(240,244,255,0.6)',
+      transition: 'all 0.2s', flexShrink: 0,
+      ...style,
+    }}
+    {...props}
+  >
+    {children}
+  </motion.button>
+);
+
+const ddItemStyle = (danger) => ({
+  display: 'flex', alignItems: 'center', gap: 10,
+  padding: '10px 14px', borderRadius: 11, marginBottom: 2,
+  color: danger ? '#ff4d6d' : 'rgba(240,244,255,0.6)',
+  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+  transition: 'all 0.15s', textDecoration: 'none',
+});
 
 export default Navbar;
