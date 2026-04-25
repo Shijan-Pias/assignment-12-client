@@ -162,7 +162,7 @@ const Navbar = () => {
                         fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
                         color: isActive ? '#00e5a0' : 'rgba(240,244,255,0.55)',
                         background: isActive ? 'rgba(0,229,160,0.08)' : 'transparent',
-                        border: `1px solid ${isActive ? 'rgba(0,229,160,0.18)' : 'transparent'}`,
+                        border: `1px ${isActive ? 'rgba(0,229,160,0.18)' : 'transparent'}`,
                         transition: 'all 0.2s', cursor: 'pointer',
                       }}
                     >
