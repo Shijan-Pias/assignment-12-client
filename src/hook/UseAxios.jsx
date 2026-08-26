@@ -2,7 +2,7 @@ import axios from 'axios';
 import React from 'react';
 
 const axiosInstance = axios.create({
-    baseURL : `https://pharmacy-backend-aqm0.onrender.com`
+    baseURL : `https://assignment-12-server-mngb.onrender.com`
    
 })
 const UseAxios = () => {

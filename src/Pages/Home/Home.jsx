@@ -20,7 +20,6 @@ const Home = () => {
            <UploadPrescription></UploadPrescription>
           <HowItWorks></HowItWorks>
           <DiscountProducts></DiscountProducts>
-          {/* <BrandsMarquee></BrandsMarquee> */}
           <AboutSection></AboutSection>
           <BenefitsAndServices></BenefitsAndServices>
           

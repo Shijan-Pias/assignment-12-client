@@ -30,6 +30,7 @@ import SellerRoutes from "../Routes/SellerRoutes";
 import UpdateProfile from "../Authentication/UpdateProfile";
 import ManagePrescriptions from "../Pages/DashBoard/MakeAdmin/ManagePrescription";
 import MyPrescriptions from "../Pages/DashBoard/UserDashboard/MyPrescription";
+import MedicineDetails from "../SystemPages/Details";
 
 export const router = createBrowserRouter([
   {
@@ -55,6 +56,10 @@ export const router = createBrowserRouter([
     {
       path: 'shopPage',
       Component: Shop
+    },
+    {
+      path: 'medicine/:id',
+      Component : MedicineDetails
     },
     {
       path:'updateProfile',

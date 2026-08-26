@@ -1,32 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from 'react-router'; 
+import { useNavigate, useSearchParams } from 'react-router';
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import UseAxiosSecure from "../hook/UseAxiosSecure";
-import UseAxiosPublic from "../hook/UseAxios"; 
+import UseAxiosPublic from "../hook/UseAxios";
 import UseAuth from "../hook/UseAuth";
-import { FaCartPlus, FaEye, FaSortAmountDown, FaSearch, FaMedkit } from 'react-icons/fa';
+import { FaCartPlus, FaEye, FaSortAmountDown, FaSearch, FaMedkit, FaTimes } from 'react-icons/fa';
 
 const Shop = () => {
   const axiosPublic = UseAxiosPublic();
   const axiosSecure = UseAxiosSecure();
   const { user } = UseAuth();
   const [searchParams] = useSearchParams();
-  
-  const searchTerm = searchParams.get('search') || ''; 
-  const [sortOrder, setSortOrder] = useState('default'); 
+  const navigate = useNavigate();
 
-  const { data: medicines = [], isLoading, error } = useQuery({
+  const searchTerm = searchParams.get('search') || '';
+  const [sortOrder, setSortOrder] = useState('default');
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedMedicine, setSelectedMedicine] = useState(null); // Modal State
+
+  const { data: medicines = [], isLoading } = useQuery({
     queryKey: ["medicines", searchTerm, sortOrder],
     queryFn: async () => {
       const res = await axiosPublic.get(`/medicines?search=${searchTerm}`);
       let data = res.data;
       if (sortOrder === 'lowToHigh') data.sort((a, b) => a.price - b.price);
-      else if (sortOrder === 'highToHigh') data.sort((a, b) => b.price - a.price);
+      else if (sortOrder === 'highToLow') data.sort((a, b) => b.price - a.price);
       return data;
     },
   });
+
+  // Category Logic
+  const categories = useMemo(() => ["All", ...new Set(medicines.map(m => m.category || "General"))], [medicines]);
+
+  const filteredMedicines = useMemo(() => {
+    return selectedCategory === "All"
+      ? medicines
+      : medicines.filter(m => (m.category || "General") === selectedCategory);
+  }, [medicines, selectedCategory]);
 
   const handleSelect = async (medicine) => {
     if (!user) {
@@ -35,7 +47,6 @@ const Shop = () => {
         text: "Please login to manage your medical cart",
         icon: "info",
         confirmButtonColor: "#10B981",
-        background: "#ffffff",
         customClass: { popup: 'rounded-[2rem]' }
       });
       return;
@@ -55,14 +66,8 @@ const Shop = () => {
 
     try {
       await axiosSecure.post("/carts", cartItem);
-      const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 2000,
-        timerProgressBar: true,
-      });
-      Toast.fire({ icon: 'success', title: 'Added to your kit' });
+      Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, icon: 'success', title: 'Added to your kit' });
+      setSelectedMedicine(null); // Close modal on add
     } catch (err) {
       Swal.fire({ icon: "error", title: "Wait...", text: "Connection error. Try again." });
     }
@@ -81,111 +86,96 @@ const Shop = () => {
       <div className="bg-white border-b border-slate-100 pt-32 pb-16 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end gap-8">
           <div className="max-w-2xl">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold uppercase tracking-widest mb-4"
-            >
-              <FaMedkit /> Verified Prescriptions
-            </motion.div>
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="text-4xl md:text-5xl font-black text-slate-900 leading-tight"
-            >
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 leading-tight">
               PharmaHub <span className="text-emerald-500">Marketplace.</span>
-            </motion.h1>
-            <p className="text-slate-500 mt-4 text-lg font-medium italic">
-              Authentic medications sourced directly from certified manufacturers.
-            </p>
+            </h1>
           </div>
-
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="relative group flex-1 md:w-64">
-                <FaSortAmountDown className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-500 transition-colors" />
-                <select 
-                  onChange={(e) => setSortOrder(e.target.value)} 
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-600 font-bold focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all appearance-none cursor-pointer"
-                >
-                    <option value="default">Sort: Recommended</option>
-                    <option value="lowToHigh">Price: Low to High</option>
-                    <option value="highToHigh">Price: High to Low</option>
-                </select>
-            </div>
+          <div className="relative group w-full md:w-64">
+            <FaSortAmountDown className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <select
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold focus:ring-4 focus:ring-emerald-500/10 outline-none cursor-pointer"
+            >
+              <option value="default">Sort: Recommended</option>
+              <option value="lowToHigh">Price: Low to High</option>
+              <option value="highToLow">Price: High to Low</option>
+            </select>
           </div>
         </div>
       </div>
 
+      {/* --- CATEGORY FILTER --- */}
+      <div className="max-w-7xl mx-auto px-6 mt-10 flex flex-wrap gap-3 justify-center">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-6 py-2 rounded-full font-bold transition-all duration-300 border ${selectedCategory === cat
+                ? "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20"
+                : "bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-600"
+              }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       {/* --- GRID SECTION --- */}
       <div className="max-w-7xl mx-auto px-6 mt-12">
-        {medicines.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
-            <FaSearch size={40} className="mx-auto text-slate-200 mb-4" />
-            <h3 className="text-xl font-bold text-slate-800">No matches found</h3>
-            <p className="text-slate-500">Try adjusting your search terms</p>
-          </div>
-        ) : (
-          <motion.div 
-            layout
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
-          >
-            <AnimatePresence>
-              {medicines.map((medicine, i) => (
-                <motion.div
-                  layout
-                  key={medicine._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.05 }}
-                  whileHover={{ y: -10 }}
-                  className="group bg-white rounded-[2.5rem] p-4 border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-emerald-900/5 transition-all duration-500"
-                >
-                  <div className="relative h-56 rounded-[2rem] overflow-hidden bg-slate-50">
-                    <img 
-                      src={medicine.MedicineImage || "https://via.placeholder.com/300"} 
-                      alt={medicine.itemName} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                    />
-                    <div className="absolute top-4 right-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-xs font-black text-slate-900 shadow-sm">
-                        {medicine.category || 'Medicine'}
-                    </div>
+        <motion.div
+          layout
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredMedicines.map((medicine) => (
+              <motion.div
+                layout
+                key={medicine._id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="group bg-white rounded-[2.5rem] p-4 border border-slate-100 shadow-sm hover:shadow-2xl transition-all"
+              >
+                <div className="relative h-56 rounded-[2rem] overflow-hidden bg-slate-50">
+                  <img src={medicine.MedicineImage} alt={medicine.itemName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                </div>
+                <div className="px-2 pt-6">
+                  <h3 className="text-xl font-black text-slate-800 uppercase">{medicine.itemName}</h3>
+                  <p className="text-emerald-500 font-bold text-lg mb-4">{medicine.price}৳</p>
+                  <div className="flex gap-3">
+                    <button onClick={() => handleSelect(medicine)} className="flex-1 h-12 bg-slate-900 hover:bg-emerald-600 text-white rounded-2xl font-bold transition-all"><FaCartPlus className="inline mr-2" /> Add</button>
+                    <button
+                      onClick={() => navigate(`/medicine/${medicine._id}`)}
+                      className="w-12 h-12 flex items-center justify-center bg-slate-100 text-black hover:bg-slate-200 rounded-2xl transition-all"
+                    >
+                      <FaEye />
+                    </button>
                   </div>
-
-                  <div className="px-2 pt-6 pb-2">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="text-xl font-black text-slate-800 leading-none group-hover:text-emerald-600 transition-colors uppercase tracking-tight">
-                          {medicine.itemName}
-                        </h3>
-                        <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest leading-none">
-                          {medicine.company}
-                        </p>
-                      </div>
-                      <p className="text-2xl font-black text-emerald-500">
-                        {medicine.price}৳
-                      </p>
-                    </div>
-
-                    <div className="flex gap-3 mt-6">
-                      <button 
-                        onClick={() => handleSelect(medicine)}
-                        className="flex-1 h-12 flex items-center justify-center gap-2 bg-slate-900 hover:bg-emerald-600 text-white rounded-2xl font-bold transition-all shadow-lg shadow-slate-200 active:scale-95"
-                      >
-                        <FaCartPlus /> Add to Cart
-                      </button>
-                      <button 
-                        onClick={() => Swal.fire({ title: medicine.itemName, text: `Detailed pharmaceutical overview of ${medicine.itemName} goes here.`, imageUrl: medicine.MedicineImage, imageWidth: 400, customClass: { popup: 'rounded-[3rem]' } })}
-                        className="w-12 h-12 flex items-center justify-center bg-slate-100 hover:bg-white border border-transparent hover:border-slate-200 text-slate-600 rounded-2xl transition-all active:scale-95"
-                      >
-                        <FaEye />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
-        )}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       </div>
+
+      {/* --- DETAILS MODAL --- */}
+      <AnimatePresence>
+        {selectedMedicine && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div onClick={() => setSelectedMedicine(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white rounded-[2rem] p-8 w-full max-w-md relative z-10"
+            >
+              <button onClick={() => setSelectedMedicine(null)} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full"><FaTimes /></button>
+              <img src={selectedMedicine.MedicineImage} className="w-full h-64 object-cover rounded-2xl mb-6" alt={selectedMedicine.itemName} />
+              <h2 className="text-2xl font-black text-slate-800 mb-2">{selectedMedicine.itemName}</h2>
+              <p className="text-slate-500 mb-6">{selectedMedicine.description || "Pharmaceutical details for this medication are available in our records."}</p>
+              <button onClick={() => handleSelect(selectedMedicine)} className="w-full h-12 bg-emerald-500 text-white font-bold rounded-xl">Add to Cart</button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

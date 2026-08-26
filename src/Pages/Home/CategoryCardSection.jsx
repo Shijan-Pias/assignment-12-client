@@ -2,27 +2,45 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { FreeMode, Pagination, Autoplay, Navigation } from "swiper/modules";
-import { FaShoppingCart, FaEye, FaTimes, FaStar, FaArrowRight, FaTag } from "react-icons/fa";
+import {
+  FaShoppingCart,
+  FaEye,
+  FaTimes,
+  FaStar,
+  FaArrowRight,
+  FaTag,
+  FaStore,
+} from "react-icons/fa";
 import Swal from "sweetalert2";
-
-import "swiper/css";
-import "swiper/css/free-mode";
-import "swiper/css/pagination";
-import "swiper/css/navigation";
 
 import UseAxiosSecure from "../../hook/UseAxiosSecure";
 import UseAuth from "../../hook/UseAuth";
 
+const HOMEPAGE_LIMIT = 3; // only 3 cards shown on the homepage
+
+/* ── Star rating ─────────────────────────────────────────────── */
+const StarRating = ({ value = 4.8 }) => (
+  <div className="flex items-center gap-0.5">
+    {Array.from({ length: 5 }, (_, i) => (
+      <FaStar
+        key={i}
+        size={11}
+        className={i < Math.round(value) ? "text-amber-400" : "text-slate-200"}
+      />
+    ))}
+    <span className="ml-1.5 text-[11px] text-slate-400 font-medium">{value}</span>
+  </div>
+);
+
+/* ── Main component ──────────────────────────────────────────── */
 const FeaturedMedicines = () => {
   const axiosSecure = UseAxiosSecure();
   const { user } = UseAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [selectedMedicine, setSelectedMedicine] = useState(null);
+  const [quickView, setQuickView] = useState(null);
 
-  const { data: medicines = [], isLoading } = useQuery({
+  const { data: allMedicines = [], isLoading } = useQuery({
     queryKey: ["medicines"],
     queryFn: async () => {
       const res = await axiosSecure.get("/medicines");
@@ -30,17 +48,23 @@ const FeaturedMedicines = () => {
     },
   });
 
-  const handleAddToCart = async (medicine) => {
+  // Only take 3 for the homepage teaser
+  const featured = allMedicines.slice(0, HOMEPAGE_LIMIT);
+
+  const handleAddToCart = async (medicine, e) => {
+    e?.stopPropagation();
+
     if (!user?.email) {
       Swal.fire({
-        title: "Authentication Required",
-        text: "Please login to manage your pharmacy cart.",
+        title: "Login required",
+        text: "Please login to add items to your cart.",
         icon: "info",
         showCancelButton: true,
-        confirmButtonColor: "#10B981",
+        confirmButtonColor: "#059669",
         confirmButtonText: "Login",
-      }).then((result) => {
-        if (result.isConfirmed) navigate("/login", { state: { from: location.pathname } });
+      }).then((r) => {
+        if (r.isConfirmed)
+          navigate("/login", { state: { from: location.pathname } });
       });
       return;
     }
@@ -61,203 +85,308 @@ const FeaturedMedicines = () => {
           toast: true,
           position: "top-end",
           icon: "success",
-          title: "Added to cart",
+          title: `${medicine.itemName} added to cart`,
           showConfirmButton: false,
           timer: 2000,
         });
       }
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  // Animation Variants
-  const containerVars = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-  };
-
-  const cardVars = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 },
-  };
-
-  if (isLoading) return <div className="h-96 flex items-center justify-center"><span className="loading loading-bars loading-lg text-emerald-500"></span></div>;
+  if (isLoading)
+    return (
+      <div className="h-72 flex items-center justify-center bg-slate-50">
+        <span className="loading loading-bars loading-lg text-emerald-500" />
+      </div>
+    );
 
   return (
-    <section className="relative py-16 bg-[#F8FAFC] overflow-hidden">
-  
+    <section className="py-16 bg-slate-50">
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-6">
 
-      {/* Decorative Background Glows */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-100/40 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-sky-100/40 rounded-full blur-[120px] pointer-events-none" />
-
-      <div className="max-w-[1400px] mx-auto px-6 relative z-10">
-        
-        {/* Modern Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-16 gap-6">
-          <motion.div 
-            initial={{ x: -30, opacity: 0 }} 
-            whileInView={{ x: 0, opacity: 1 }}
+        {/* ── Section header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+          <motion.div
+            initial={{ opacity: 0, x: -16 }}
+            whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
           >
-            <div className="flex items-center gap-2 mb-3">
-              <span className="h-[2px] w-12 bg-emerald-500"></span>
-              <span className="text-emerald-600 font-bold uppercase tracking-widest text-sm">Best Sellers</span>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="w-5 h-[1.5px] bg-emerald-500 rounded" />
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600">
+                Best sellers
+              </span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-black text-slate-900">Featured <span className="text-emerald-500">Collection</span></h2>
+            <h2 className="text-3xl font-bold text-slate-900">
+              Featured <span className="text-emerald-500">medicines</span>
+            </h2>
+            <p className="text-sm text-slate-400 mt-1">
+              Hand-picked top products from our pharmacy
+            </p>
           </motion.div>
 
           <Link to="/shopPage">
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="group flex items-center gap-3 bg-white border-2 border-slate-200 px-8 py-3.5 rounded-2xl font-bold text-slate-700 hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm"
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 text-sm font-medium hover:border-emerald-400 hover:text-emerald-600 transition-colors shadow-sm"
             >
-              Explore Full Shop <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
+              View all medicines <FaArrowRight size={11} />
             </motion.button>
           </Link>
         </div>
 
-        {/* Swiper Slider */}
-        <motion.div variants={containerVars} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-          <Swiper
-            slidesPerView={1}
-            spaceBetween={30}
-            autoplay={{ delay: 4000 }}
-            pagination={{ clickable: true, dynamicBullets: true }}
-            navigation={true}
-            breakpoints={{
-              640: { slidesPerView: 2 },
-              1024: { slidesPerView: 3 },
-              1280: { slidesPerView: 4 },
-            }}
-            modules={[Pagination, Autoplay, Navigation]}
-            className="featured-swiper !pb-16"
-          >
-            {medicines.map((med) => (
-              <SwiperSlide key={med._id}>
-                <motion.div 
-                  variants={cardVars}
-                  whileHover={{ y: -10 }}
-                  className="group relative bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col h-[480px]"
-                >
-                  {/* Image Container */}
-                  <div className="relative h-60 bg-gradient-to-b from-slate-50 to-white p-8 flex items-center justify-center overflow-hidden">
-                    <img
-                      src={med.MedicineImage}
-                      alt={med.itemName}
-                      className="max-h-full w-auto object-contain group-hover:scale-110 transition-transform duration-700 z-10"
-                    />
-                    
-                    {/* Floating Badges */}
-                    {med.discount > 0 && (
-                      <div className="absolute top-6 left-6 z-20 bg-red-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
-                        <FaTag /> {med.discount}% OFF
-                      </div>
-                    )}
+        {/* ── 3-card grid: 1 mobile / 2 tablet / 3 desktop ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {featured.map((med, idx) => (
+            <MedicineCard
+              key={med._id}
+              med={med}
+              idx={idx}
+              onQuickView={setQuickView}
+              onAddToCart={handleAddToCart}
+            />
+          ))}
+        </div>
 
-                    {/* Quick Action Overlay */}
-                    <div className="absolute inset-0 bg-emerald-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-[2px] flex items-center justify-center gap-4 z-20">
-                      <button onClick={() => setSelectedMedicine(med)} className="p-4 bg-white rounded-2xl text-emerald-600 shadow-xl hover:bg-emerald-600 hover:text-white transition-all">
-                        <FaEye size={20} />
-                      </button>
-                      <button onClick={() => handleAddToCart(med)} className="p-4 bg-white rounded-2xl text-emerald-600 shadow-xl hover:bg-emerald-600 hover:text-white transition-all">
-                        <FaShoppingCart size={20} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Content Body */}
-                  <div className="p-8 flex-1 flex flex-col">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{med.category}</span>
-                      <span className="h-1 w-1 bg-slate-300 rounded-full"></span>
-                      <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">{med.company}</span>
-                    </div>
-
-                    <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-emerald-600 transition-colors line-clamp-1">
-                      {med.itemName}
-                    </h3>
-
-                    <div className="flex items-center gap-1 text-amber-400 mb-6">
-                      <FaStar size={12} /><FaStar size={12} /><FaStar size={12} /><FaStar size={12} />
-                      <FaStar className="text-slate-200" size={12} />
-                      <span className="text-slate-400 text-xs font-bold ml-2">4.8</span>
-                    </div>
-
-                    <div className="mt-auto flex items-center justify-between border-t border-slate-50 pt-6">
-                      <div>
-                        <span className="block text-[10px] font-bold text-slate-400 uppercase">Best Price</span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl font-black text-slate-900">৳{med.price}</span>
-                          {med.discount > 0 && (
-                            <span className="text-sm text-slate-300 line-through font-bold">৳{Math.round(med.price * 1.2)}</span>
-                          )}
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => handleAddToCart(med)}
-                        className="bg-emerald-100 text-emerald-700 p-4 rounded-2xl hover:bg-emerald-500 hover:text-white transition-all shadow-inner"
-                      >
-                        <FaShoppingCart />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
-        </motion.div>
+        {/* ── Explore CTA ── */}
+        <div className="flex flex-col items-center mt-10 gap-2">
+          <Link to="/shopPage">
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="inline-flex items-center gap-2.5 bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-lg font-semibold text-sm transition-colors shadow-sm"
+            >
+              <FaStore size={14} />
+              Explore full shop
+              <FaArrowRight size={12} />
+            </motion.button>
+          </Link>
+          <p className="text-xs text-slate-400">
+            Showing {HOMEPAGE_LIMIT} of {allMedicines.length}+ medicines available
+          </p>
+        </div>
       </div>
 
-      {/* --- Apple Style Quick View Modal --- */}
+      {/* ── Quick View Modal ── */}
       <AnimatePresence>
-        {selectedMedicine && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-5xl rounded-[3rem] overflow-hidden shadow-2xl relative flex flex-col md:flex-row"
-            >
-              <button onClick={() => setSelectedMedicine(null)} className="absolute top-8 right-8 z-50 p-3 bg-slate-100 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors text-slate-500">
-                <FaTimes size={20} />
-              </button>
-
-              <div className="md:w-1/2 bg-slate-50 p-12 flex items-center justify-center">
-                <img src={selectedMedicine.MedicineImage} className="max-h-[400px] w-auto drop-shadow-2xl" alt="" />
-              </div>
-
-              <div className="md:w-1/2 p-12 flex flex-col">
-                <div className="mb-8">
-                  <span className="inline-block px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase mb-4 tracking-tighter">
-                    Premium Quality
-                  </span>
-                  <h2 className="text-4xl font-black text-slate-900 mb-2">{selectedMedicine.itemName}</h2>
-                  <p className="text-slate-400 font-bold tracking-wide">Generic: {selectedMedicine.genericName}</p>
-                </div>
-
-                <p className="text-slate-500 leading-relaxed mb-10 text-lg">
-                  {selectedMedicine.description || "A high-performance pharmaceutical product formulated for effective results under verified clinical standards."}
-                </p>
-
-                <div className="mt-auto flex items-center justify-between">
-                  <div>
-                    <span className="text-slate-400 text-xs font-bold uppercase tracking-widest block mb-1">Unit Price</span>
-                    <span className="text-5xl font-black text-emerald-600">৳{selectedMedicine.price}</span>
-                  </div>
-                  <button onClick={() => handleAddToCart(selectedMedicine)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-5 rounded-[2rem] font-black shadow-xl shadow-emerald-200 flex items-center gap-3 transition-transform active:scale-95">
-                    <FaShoppingCart /> Buy Now
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+        {quickView && (
+          <QuickViewModal
+            med={quickView}
+            onClose={() => setQuickView(null)}
+            onAddToCart={handleAddToCart}
+          />
         )}
       </AnimatePresence>
     </section>
+  );
+};
+
+/* ── Card ────────────────────────────────────────────────────── */
+const MedicineCard = ({ med, idx, onQuickView, onAddToCart }) => {
+  const oldPrice = Math.round(med.price * 1.2);
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 14 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: idx * 0.08 }}
+      className="group bg-white rounded-xl border border-slate-100 overflow-hidden flex flex-col hover:-translate-y-1 hover:border-slate-200 hover:shadow-md transition-all duration-200"
+    >
+      {/* Image panel */}
+      <div className="relative h-48 bg-slate-50 flex items-center justify-center p-6 overflow-hidden">
+        <img
+          src={med.MedicineImage}
+          alt={med.itemName}
+          className="max-h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+        />
+
+        {med.discount > 0 && (
+          <span className="absolute top-3 left-3 inline-flex items-center gap-1 bg-red-50 border border-red-100 text-red-600 text-[10px] font-medium px-2.5 py-1 rounded-full">
+            <FaTag size={8} /> {med.discount}% off
+          </span>
+        )}
+
+        {/* Hover actions */}
+        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-white/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <button
+            onClick={() => onQuickView(med)}
+            className="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-colors shadow-sm"
+            aria-label="Quick view"
+          >
+            <FaEye size={14} />
+          </button>
+          <button
+            onClick={(e) => onAddToCart(med, e)}
+            className="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-colors shadow-sm"
+            aria-label="Add to cart"
+          >
+            <FaShoppingCart size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="p-4 flex flex-col flex-1">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            {med.category}
+          </span>
+          <span className="w-1 h-1 rounded-full bg-slate-200" />
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-500">
+            {med.company}
+          </span>
+        </div>
+
+        <h3 className="text-sm font-semibold text-slate-800 mb-1.5 truncate group-hover:text-emerald-600 transition-colors">
+          {med.itemName}
+        </h3>
+
+        <StarRating />
+
+        {/* Price + cart */}
+        <div className="mt-auto pt-3 border-t border-slate-50 flex items-center justify-between">
+          <div>
+            <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-0.5">
+              Best price
+            </span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-bold text-slate-900">
+                ৳{med.price}
+              </span>
+              {med.discount > 0 && (
+                <span className="text-xs text-slate-300 line-through">
+                  ৳{oldPrice}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={(e) => onAddToCart(med, e)}
+            className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-colors"
+            aria-label="Add to cart"
+          >
+            <FaShoppingCart size={13} />
+          </button>
+        </div>
+      </div>
+    </motion.article>
+  );
+};
+
+/* ── Quick View Modal ────────────────────────────────────────── */
+const QuickViewModal = ({ med, onClose, onAddToCart }) => {
+  const oldPrice = Math.round(med.price * 1.2);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 14 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 14 }}
+        transition={{ type: "spring", damping: 22, stiffness: 300 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white w-full max-w-2xl rounded-2xl border border-slate-100 shadow-xl overflow-hidden flex flex-col md:flex-row relative"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full border border-slate-200 bg-white text-slate-400 flex items-center justify-center hover:text-slate-700 transition-colors"
+          aria-label="Close"
+        >
+          <FaTimes size={12} />
+        </button>
+
+        {/* Image */}
+        <div className="md:w-2/5 bg-slate-50 flex items-center justify-center p-8 min-h-[220px]">
+          <img
+            src={med.MedicineImage}
+            alt={med.itemName}
+            className="max-h-[220px] w-auto object-contain"
+          />
+        </div>
+
+        {/* Details */}
+        <div className="flex-1 p-6 flex flex-col">
+          <span className="self-start text-[10px] font-semibold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full mb-4">
+            Verified quality
+          </span>
+
+          <h2 className="text-xl font-bold text-slate-900 mb-1">
+            {med.itemName}
+          </h2>
+          <p className="text-sm text-slate-400 mb-4">
+            Generic: {med.genericName}
+          </p>
+
+          <p className="text-sm text-slate-500 leading-relaxed mb-5">
+            {med.description ||
+              "A clinically verified pharmaceutical product formulated to high standards for effective and reliable results."}
+          </p>
+
+          <div className="grid grid-cols-2 gap-2 mb-5">
+            {[
+              { label: "Category", value: med.category },
+              { label: "Company", value: med.company },
+              { label: "Per unit", value: `৳${med.price} / strip` },
+              { label: "Availability", value: "In stock", green: true },
+            ].map(({ label, value, green }) => (
+              <div
+                key={label}
+                className="bg-slate-50 border border-slate-100 rounded-lg p-2.5"
+              >
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-0.5">
+                  {label}
+                </span>
+                <span
+                  className={`text-sm font-semibold ${
+                    green ? "text-emerald-600" : "text-slate-800"
+                  }`}
+                >
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+            <div>
+              <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-0.5">
+                Unit price
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-emerald-600">
+                  ৳{med.price}
+                </span>
+                {med.discount > 0 && (
+                  <span className="text-xs text-slate-300 line-through">
+                    ৳{oldPrice}
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={(e) => {
+                onAddToCart(med, e);
+                onClose();
+              }}
+              className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors"
+            >
+              <FaShoppingCart size={13} /> Add to cart
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
